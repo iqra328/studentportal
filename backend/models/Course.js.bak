@@ -1,0 +1,43 @@
+const mongoose = require('mongoose');
+
+const courseSchema = new mongoose.Schema({
+  title: {
+    type: String,
+    required: true
+  },
+  description: {
+    type: String,
+    required: true
+  },
+  price: {
+    type: Number,
+    required: true
+  },
+  isPremium: {
+    type: Boolean,
+    default: false
+  },
+  teacher: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  students: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+  assignments: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Assignment'
+  }],
+  duration: String,
+  level: {
+    type: String,
+    enum: ['beginner', 'intermediate', 'advanced'],
+    default: 'beginner'
+  }
+}, {
+  timestamps: true
+});
+
+module.exports = mongoose.model('Course', courseSchema);
