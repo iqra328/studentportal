@@ -177,6 +177,77 @@ app.get('/api/courses', async (req, res) => {
   }
 });
 
+
+// ============ GET USER'S ENROLLED COURSES ============
+app.get('/api/users/my-courses', async (req, res) => {
+  try {
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id).populate('enrolledCourses');
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    res.json(user.enrolledCourses || []);
+  } catch (error) {
+    console.error('Error fetching user courses:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// ============ ENROLL IN COURSE ============
+app.post('/api/courses/:id/enroll', async (req, res) => {
+  try {
+    const courseId = req.params.id;
+    
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    // Find course
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+    
+    // Find user
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    // Check if already enrolled
+    if (user.enrolledCourses && user.enrolledCourses.includes(courseId)) {
+      return res.status(400).json({ message: 'Already enrolled in this course' });
+    }
+    
+    // Enroll user
+    if (!user.enrolledCourses) user.enrolledCourses = [];
+    user.enrolledCourses.push(courseId);
+    await user.save();
+    
+    // Add user to course students
+    if (!course.students) course.students = [];
+    course.students.push(decoded.id);
+    await course.save();
+    
+    res.json({ 
+      success: true, 
+      message: 'Successfully enrolled in course' 
+    });
+  } catch (error) {
+    console.error('Enrollment error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
 // ============ DATABASE CONNECTION ============
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('✅ MongoDB Connected'))
