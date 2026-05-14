@@ -14,11 +14,22 @@ const app = express();
 // app.use(express.json());
 // app.use(express.urlencoded({ extended: true }));
 
+const allowedOrigins = [
+  'http://localhost:3000',           // Local development
+  'http://localhost:3001',           // Alternative local port
+  'https://studentportal-ut2r.onrender.com',  // Backend itself
+  'https://studentportal-git-main-iqra328.vercel.app',  // Vercel frontend (if any)
+  'https://studentportal.vercel.app',                // Vercel custom
+  'https://*.netlify.app',                           // All Netlify apps
+  'https://studentportal.netlify.app'                // Your Netlify URL
+];
+
 app.use(cors({
   origin: function(origin, callback) {
     // Allow requests with no origin (like mobile apps or curl)
     if (!origin) return callback(null, true);
     if (allowedOrigins.indexOf(origin) === -1) {
+      console.log('Blocked origin:', origin);  // Debug log
       const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
       return callback(new Error(msg), false);
     }
