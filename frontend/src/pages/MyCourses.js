@@ -13,14 +13,12 @@ const MyCourses = () => {
 
   const fetchMyCourses = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/users/my-courses', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await response.json();
-      setMyCourses(data);
+      const response = await API.get('/users/my-courses');
+      const courses = Array.isArray(response.data) ? response.data : [];
+      setMyCourses(courses);
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error fetching my courses:', error);
+      setMyCourses([]);
     } finally {
       setLoading(false);
     }
@@ -28,14 +26,9 @@ const MyCourses = () => {
 
   if (loading) return <div style={styles.loading}>Loading your courses...</div>;
 
-  return (
-    <div style={styles.container}>
-      <div style={styles.header}>
-        <h1 style={styles.title}>📖 My Courses</h1>
-        <p style={styles.subtitle}>Continue your learning journey</p>
-      </div>
-
-      {myCourses.length === 0 ? (
+  if (myCourses.length === 0) {
+    return (
+      <div style={styles.container}>
         <div style={styles.emptyState}>
           <div style={styles.emptyIcon}>📚</div>
           <h2>No courses yet</h2>
@@ -44,36 +37,35 @@ const MyCourses = () => {
             Browse Courses →
           </button>
         </div>
-      ) : (
-        <div style={styles.courseGrid}>
-          {myCourses.map(course => (
-            <div key={course._id} style={styles.courseCard}>
-              <div style={styles.courseHeader}>
-                <h3 style={styles.courseTitle}>{course.title}</h3>
-                <span style={course.isPremium ? styles.premiumBadge : styles.freeBadge}>
-                  {course.isPremium ? 'PREMIUM' : 'FREE'}
-                </span>
-              </div>
-              <p style={styles.courseDesc}>{course.description}</p>
-              <div style={styles.courseMeta}>
-                <span>⏱️ {course.duration}</span>
-                <span>⭐ {course.level}</span>
-                <span>👨‍🏫 {course.teacher?.name}</span>
-              </div>
-              <div style={styles.progressSection}>
-                <div style={styles.progressLabel}>
-                  <span>Progress</span>
-                  <span>30%</span>
-                </div>
-                <div style={styles.progressBar}>
-                  <div style={{...styles.progressFill, width: '30%'}}></div>
-                </div>
-              </div>
-              <button style={styles.continueBtn}>Continue Learning →</button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={styles.container}>
+      <div style={styles.header}>
+        <h1 style={styles.title}>📖 My Courses</h1>
+        <p style={styles.subtitle}>Continue your learning journey</p>
+      </div>
+      <div style={styles.courseGrid}>
+        {myCourses.map(course => (
+          <div key={course._id} style={styles.courseCard}>
+            <div style={styles.courseHeader}>
+              <h3 style={styles.courseTitle}>{course.title}</h3>
+              <span style={course.isPremium ? styles.premiumBadge : styles.freeBadge}>
+                {course.isPremium ? 'PREMIUM' : 'FREE'}
+              </span>
             </div>
-          ))}
-        </div>
-      )}
+            <p style={styles.courseDesc}>{course.description?.substring(0, 100)}...</p>
+            <div style={styles.courseMeta}>
+              <span>⏱️ {course.duration}</span>
+              <span>⭐ {course.level}</span>
+              <span>👨‍🏫 {course.teacher?.name}</span>
+            </div>
+            <button style={styles.continueBtn}>Continue Learning →</button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
@@ -150,27 +142,6 @@ const styles = {
     fontSize: '13px',
     color: '#888',
     flexWrap: 'wrap'
-  },
-  progressSection: {
-    marginBottom: '20px'
-  },
-  progressLabel: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    fontSize: '13px',
-    color: '#666',
-    marginBottom: '8px'
-  },
-  progressBar: {
-    backgroundColor: '#f0f0f0',
-    borderRadius: '10px',
-    height: '8px',
-    overflow: 'hidden'
-  },
-  progressFill: {
-    backgroundColor: '#667eea',
-    height: '100%',
-    borderRadius: '10px'
   },
   continueBtn: {
     width: '100%',
