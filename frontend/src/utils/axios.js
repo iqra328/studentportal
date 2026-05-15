@@ -1,9 +1,7 @@
 import axios from 'axios';
 
 const API = axios.create({
-//  baseURL: 'https://studentportal-ut2r.onrender.com/api',
- baseURL: 'http://localhost:5000/api',
-   
+  baseURL: 'https://studentportal-ut2r.onrender.com/api',  // ← Live backend URL
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
