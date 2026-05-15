@@ -17,12 +17,10 @@ API.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Response interceptor for error handling
+// Response interceptor
 API.interceptors.response.use(
   (response) => response,
   (error) => {
