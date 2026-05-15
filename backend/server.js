@@ -10,26 +10,24 @@ dotenv.config();
 const app = express();
 
 // ============ CORS CONFIGURATION ============
-// Define allowed origins FIRST
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:3001',
   'http://localhost:3002',
+  'http://localhost:3004',
   'https://studentportal-ut2r.onrender.com',
   'https://*.netlify.app',
   'https://*.vercel.app'
 ];
 
-// Apply CORS middleware
 app.use(cors({
   origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl)
     if (!origin) return callback(null, true);
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
       console.log('Blocked origin:', origin);
-      callback(new Error('CORS not allowed'), false);
+      callback(null, true); // Allow temporarily
     }
   },
   credentials: true,
@@ -37,7 +35,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Body parser middleware - IMPORTANT for req.body
+// Body parser middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -69,31 +67,20 @@ app.get('/api/test', (req, res) => {
 // ============ REGISTER ROUTE ============
 app.post('/api/auth/register', async (req, res) => {
   try {
-    console.log('Request body received:', req.body);
-    
     const { name, email, password, role } = req.body;
     
-    // Validate required fields
     if (!name || !email || !password) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Name, email and password are required' 
-      });
+      return res.status(400).json({ success: false, message: 'All fields required' });
     }
     
-    console.log('Registration attempt:', { name, email, role });
-    
-    // Check if user exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ success: false, message: 'User already exists' });
     }
     
-    // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
     
-    // Create user
     const user = new User({
       name,
       email,
@@ -102,9 +89,7 @@ app.post('/api/auth/register', async (req, res) => {
     });
     
     await user.save();
-    console.log('User created:', user._id);
     
-    // Generate token
     const token = jwt.sign(
       { id: user._id, email: user.email, role: user.role },
       process.env.JWT_SECRET,
@@ -114,12 +99,7 @@ app.post('/api/auth/register', async (req, res) => {
     res.status(201).json({
       success: true,
       token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role
-      }
+      user: { id: user._id, name: user.name, email: user.email, role: user.role }
     });
   } catch (error) {
     console.error('Registration error:', error);
@@ -131,10 +111,6 @@ app.post('/api/auth/register', async (req, res) => {
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    
-    if (!email || !password) {
-      return res.status(400).json({ success: false, message: 'Email and password required' });
-    }
     
     const user = await User.findOne({ email });
     if (!user) {
@@ -155,19 +131,14 @@ app.post('/api/auth/login', async (req, res) => {
     res.json({
       success: true,
       token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role
-      }
+      user: { id: user._id, name: user.name, email: user.email, role: user.role }
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// ============ COURSES ROUTE ============
+// ============ GET ALL COURSES ============
 app.get('/api/courses', async (req, res) => {
   try {
     const courses = await Course.find().populate('teacher', 'name email');
@@ -177,6 +148,126 @@ app.get('/api/courses', async (req, res) => {
   }
 });
 
+// ============ GET SINGLE COURSE ============
+app.get('/api/courses/:id', async (req, res) => {
+  try {
+    const course = await Course.findById(req.params.id).populate('teacher', 'name email');
+    if (!course) return res.status(404).json({ message: 'Course not found' });
+    res.json(course);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// ============ CREATE COURSE (Teacher only) ============
+// ============ CREATE COURSE ============
+app.post('/api/courses', async (req, res) => {
+  try {
+    const { title, description, price, duration, level } = req.body;
+    
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log('Creating course as user:', decoded.email);
+    
+    if (decoded.role !== 'teacher' && decoded.role !== 'admin') {
+      return res.status(403).json({ message: 'Only teachers can create courses' });
+    }
+    
+    const course = new Course({
+      title,
+      description,
+      price: price || 0,
+      isPremium: (price || 0) > 0,
+      teacher: decoded.id,
+      duration: duration || '4 weeks',
+      level: level || 'beginner'
+    });
+    
+    await course.save();
+    console.log('✅ Course created:', course._id);
+    
+    res.status(201).json({ success: true, course });
+  } catch (error) {
+    console.error('Create course error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+// ============ ENROLL IN COURSE (Student only) ============
+// ============ ENROLL IN COURSE (Student only) ============
+app.post('/api/courses/:id/enroll', async (req, res) => {
+  try {
+    const courseId = req.params.id;
+    console.log('📝 Enrollment request for course:', courseId);
+    
+    // Get token
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ message: 'Unauthorized - No token' });
+    }
+    
+    // Verify token
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+      console.log('User:', decoded.email);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+    
+    // Check if course exists
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+    console.log('Course:', course.title);
+    
+    // Check if user exists
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    console.log('User:', user.name);
+    
+    // Check if already enrolled
+    if (user.enrolledCourses && user.enrolledCourses.includes(courseId)) {
+      return res.status(400).json({ message: 'Already enrolled' });
+    }
+    
+    // Initialize array if needed
+    if (!user.enrolledCourses) {
+      user.enrolledCourses = [];
+    }
+    
+    // ONLY update user - add course to enrolled list
+    user.enrolledCourses.push(courseId);
+    await user.save();
+    console.log('✅ User updated');
+    
+    // ONLY update course students - using updateOne, NOT save()
+    await Course.updateOne(
+      { _id: courseId },
+      { $addToSet: { students: decoded.id } }
+    );
+    console.log('✅ Course students updated');
+    
+    // Return success
+    res.json({ 
+      success: true, 
+      message: 'Successfully enrolled in course' 
+    });
+    
+  } catch (error) {
+    console.error('❌ Enrollment error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: error.message 
+    });
+  }
+});
 
 // ============ GET USER'S ENROLLED COURSES ============
 app.get('/api/users/my-courses', async (req, res) => {
@@ -200,59 +291,14 @@ app.get('/api/users/my-courses', async (req, res) => {
   }
 });
 
-// ============ ENROLL IN COURSE ============
-app.post('/api/courses/:id/enroll', async (req, res) => {
-  try {
-    const courseId = req.params.id;
-    
-    const token = req.header('Authorization')?.replace('Bearer ', '');
-    if (!token) {
-      return res.status(401).json({ message: 'Unauthorized' });
-    }
-    
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
-    // Find course
-    const course = await Course.findById(courseId);
-    if (!course) {
-      return res.status(404).json({ message: 'Course not found' });
-    }
-    
-    // Find user
-    const user = await User.findById(decoded.id);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-    
-    // Check if already enrolled
-    if (user.enrolledCourses && user.enrolledCourses.includes(courseId)) {
-      return res.status(400).json({ message: 'Already enrolled in this course' });
-    }
-    
-    // Enroll user
-    if (!user.enrolledCourses) user.enrolledCourses = [];
-    user.enrolledCourses.push(courseId);
-    await user.save();
-    
-    // Add user to course students
-    if (!course.students) course.students = [];
-    course.students.push(decoded.id);
-    await course.save();
-    
-    res.json({ 
-      success: true, 
-      message: 'Successfully enrolled in course' 
-    });
-  } catch (error) {
-    console.error('Enrollment error:', error);
-    res.status(500).json({ message: error.message });
-  }
-});
+
+
 // ============ DATABASE CONNECTION ============
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('✅ MongoDB Connected'))
   .catch(err => console.log('❌ MongoDB Error:', err.message));
 
+// ============ START SERVER ============
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);

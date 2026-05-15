@@ -1,602 +1,3 @@
-// import React, { useState, useEffect } from 'react';
-// import { useAuth } from '../contexts/AuthContext';
-// import API from '../utils/axios';
-
-// const Dashboard = () => {
-//   const { user } = useAuth();
-//   const [courses, setCourses] = useState([]);
-//   const [myCourses, setMyCourses] = useState([]);
-//   const [loading, setLoading] = useState(true);
-//   const [activeTab, setActiveTab] = useState('dashboard');
-//   const [showCreateModal, setShowCreateModal] = useState(false);
-//   const [newCourse, setNewCourse] = useState({
-//     title: '', description: '', price: 0, duration: '4 weeks', level: 'beginner'
-//   });
-
-//   useEffect(() => {
-//     fetchData();
-//   }, []);
-
-//   const fetchData = async () => {
-//     try {
-//       setLoading(true);
-//       // Get all courses
-//       const coursesRes = await API.get('/courses');
-//       setCourses(coursesRes.data);
-      
-//       // Get user's enrolled courses
-//       const token = localStorage.getItem('token');
-//       const myCoursesRes = await fetch('http://localhost:5000/api/users/my-courses', {
-//         headers: { 'Authorization': `Bearer ${token}` }
-//       });
-//       const myCoursesData = await myCoursesRes.json();
-//       setMyCourses(myCoursesData);
-      
-//     } catch (error) {
-//       console.error('Error fetching data:', error);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   const enrollCourse = async (courseId) => {
-//     try {
-//       const response = await API.post(`/courses/${courseId}/enroll`);
-//       if (response.data.success) {
-//         alert('✅ Successfully enrolled in course!');
-//         fetchData(); // Refresh data
-//       }
-//     } catch (error) {
-//       alert(error.response?.data?.message || 'Enrollment failed');
-//     }
-//   };
-
-//   const createCourse = async (e) => {
-//     e.preventDefault();
-//     try {
-//       await API.post('/courses', newCourse);
-//       alert('✅ Course created successfully!');
-//       setNewCourse({ title: '', description: '', price: 0, duration: '4 weeks', level: 'beginner' });
-//       setShowCreateModal(false);
-//       fetchData();
-//     } catch (error) {
-//       alert(error.response?.data?.message || 'Failed to create course');
-//     }
-//   };
-
-//   if (loading) return <div style={styles.loading}>Loading...</div>;
-
-//   // Available courses (not enrolled)
-//   const availableCourses = courses.filter(course => 
-//     !myCourses.some(myCourse => myCourse._id === course._id)
-//   );
-
-//   return (
-//     <div style={styles.container}>
-//       {/* Header */}
-//       <div style={styles.header}>
-//         <h1 style={styles.headerTitle}>Student Course Portal</h1>
-//         <p style={styles.headerSubtitle}>Welcome back, {user?.name}! 👋</p>
-//       </div>
-
-//       {/* Stats Cards */}
-//       <div style={styles.statsGrid}>
-//         <div style={styles.statCard}>
-//           <div style={styles.statIcon}>📚</div>
-//           <div>
-//             <h3 style={styles.statNumber}>{courses.length}</h3>
-//             <p style={styles.statLabel}>Total Courses</p>
-//           </div>
-//         </div>
-//         <div style={styles.statCard}>
-//           <div style={styles.statIcon}>✅</div>
-//           <div>
-//             <h3 style={styles.statNumber}>{myCourses.length}</h3>
-//             <p style={styles.statLabel}>Enrolled Courses</p>
-//           </div>
-//         </div>
-//         <div style={styles.statCard}>
-//           <div style={styles.statIcon}>👨‍🎓</div>
-//           <div>
-//             <h3 style={styles.statNumber}>In Progress</h3>
-//             <p style={styles.statLabel}>Learning</p>
-//           </div>
-//         </div>
-//         <div style={styles.statCard}>
-//           <div style={styles.statIcon}>🏆</div>
-//           <div>
-//             <h3 style={styles.statNumber}>0</h3>
-//             <p style={styles.statLabel}>Completed</p>
-//           </div>
-//         </div>
-//       </div>
-
-//       {/* Tabs */}
-//       <div style={styles.tabs}>
-//         <button 
-//           onClick={() => setActiveTab('dashboard')}
-//           style={activeTab === 'dashboard' ? styles.activeTab : styles.tab}
-//         >
-//           📊 Dashboard
-//         </button>
-//         <button 
-//           onClick={() => setActiveTab('my-courses')}
-//           style={activeTab === 'my-courses' ? styles.activeTab : styles.tab}
-//         >
-//           📖 My Courses ({myCourses.length})
-//         </button>
-//         <button 
-//           onClick={() => setActiveTab('available')}
-//           style={activeTab === 'available' ? styles.activeTab : styles.tab}
-//         >
-//           🎯 Available Courses ({availableCourses.length})
-//         </button>
-//         {user?.role === 'teacher' && (
-//           <button 
-//             onClick={() => setActiveTab('create')}
-//             style={activeTab === 'create' ? styles.activeTab : styles.tab}
-//           >
-//             ✨ Create Course
-//           </button>
-//         )}
-//         <button 
-//           onClick={() => setActiveTab('payments')}
-//           style={activeTab === 'payments' ? styles.activeTab : styles.tab}
-//         >
-//           💳 Payments
-//         </button>
-//       </div>
-
-//       {/* Tab Content */}
-//       <div style={styles.tabContent}>
-//         {/* Dashboard Tab */}
-//         {activeTab === 'dashboard' && (
-//           <div>
-//             <div style={styles.welcomeCard}>
-//               <h2>🎉 Welcome to Your Learning Journey!</h2>
-//               <p>You are enrolled in {myCourses.length} course(s). Keep learning and growing!</p>
-//               {myCourses.length === 0 && (
-//                 <button onClick={() => setActiveTab('available')} style={styles.browseBtn}>
-//                   Browse Courses →
-//                 </button>
-//               )}
-//             </div>
-            
-//             {myCourses.length > 0 && (
-//               <div>
-//                 <h3 style={styles.sectionTitle}>📌 Continue Learning</h3>
-//                 <div style={styles.courseGrid}>
-//                   {myCourses.slice(0, 3).map(course => (
-//                     <div key={course._id} style={styles.courseCard}>
-//                       <h4>{course.title}</h4>
-//                       <p>{course.description?.substring(0, 100)}...</p>
-//                       <div style={styles.progressBar}>
-//                         <div style={{...styles.progressFill, width: '30%'}}></div>
-//                       </div>
-//                       <button style={styles.continueBtn}>Continue →</button>
-//                     </div>
-//                   ))}
-//                 </div>
-//               </div>
-//             )}
-//           </div>
-//         )}
-
-//         {/* My Courses Tab */}
-//         {activeTab === 'my-courses' && (
-//           <div>
-//             <h2 style={styles.sectionTitle}>📖 My Enrolled Courses</h2>
-//             {myCourses.length === 0 ? (
-//               <div style={styles.emptyState}>
-//                 <p>You haven't enrolled in any courses yet.</p>
-//                 <button onClick={() => setActiveTab('available')} style={styles.browseBtn}>
-//                   Browse Available Courses
-//                 </button>
-//               </div>
-//             ) : (
-//               <div style={styles.courseGrid}>
-//                 {myCourses.map(course => (
-//                   <div key={course._id} style={styles.courseCard}>
-//                     <div style={styles.courseBadge}>Enrolled</div>
-//                     <h3 style={styles.courseTitle}>{course.title}</h3>
-//                     <p style={styles.courseDesc}>{course.description}</p>
-//                     <p style={styles.teacherInfo}>👨‍🏫 Teacher: {course.teacher?.name}</p>
-//                     <div style={styles.courseMeta}>
-//                       <span>⏱️ {course.duration}</span>
-//                       <span>⭐ {course.level}</span>
-//                     </div>
-//                     <div style={styles.cardFooter}>
-//                       <span style={styles.price}>${course.price}</span>
-//                       <button style={styles.continueBtn}>Continue Learning</button>
-//                     </div>
-//                   </div>
-//                 ))}
-//               </div>
-//             )}
-//           </div>
-//         )}
-
-//         {/* Available Courses Tab */}
-//         {activeTab === 'available' && (
-//           <div>
-//             <h2 style={styles.sectionTitle}>🎯 Available Courses</h2>
-//             {availableCourses.length === 0 ? (
-//               <div style={styles.emptyState}>
-//                 <p>You're enrolled in all available courses! 🎉</p>
-//               </div>
-//             ) : (
-//               <div style={styles.courseGrid}>
-//                 {availableCourses.map(course => (
-//                   <div key={course._id} style={styles.courseCard}>
-//                     <div style={course.isPremium ? styles.premiumBadge : styles.freeBadge}>
-//                       {course.isPremium ? '💰 PREMIUM' : '✨ FREE'}
-//                     </div>
-//                     <h3 style={styles.courseTitle}>{course.title}</h3>
-//                     <p style={styles.courseDesc}>{course.description}</p>
-//                     <p style={styles.teacherInfo}>👨‍🏫 {course.teacher?.name}</p>
-//                     <div style={styles.courseMeta}>
-//                       <span>⏱️ {course.duration}</span>
-//                       <span>⭐ {course.level}</span>
-//                     </div>
-//                     <div style={styles.cardFooter}>
-//                       <span style={styles.price}>${course.price}</span>
-//                       <button onClick={() => enrollCourse(course._id)} style={styles.enrollBtn}>
-//                         Enroll Now →
-//                       </button>
-//                     </div>
-//                   </div>
-//                 ))}
-//               </div>
-//             )}
-//           </div>
-//         )}
-
-//         {/* Create Course Tab (Teacher Only) */}
-//         {activeTab === 'create' && user?.role === 'teacher' && (
-//           <div style={styles.createCard}>
-//             <h2 style={styles.sectionTitle}>✨ Create New Course</h2>
-//             <form onSubmit={createCourse} style={styles.createForm}>
-//               <input type="text" placeholder="Course Title" value={newCourse.title}
-//                 onChange={(e) => setNewCourse({...newCourse, title: e.target.value})}
-//                 style={styles.input} required />
-//               <textarea placeholder="Course Description" value={newCourse.description}
-//                 onChange={(e) => setNewCourse({...newCourse, description: e.target.value})}
-//                 style={styles.textarea} required />
-//               <input type="number" placeholder="Price ($)" value={newCourse.price}
-//                 onChange={(e) => setNewCourse({...newCourse, price: parseFloat(e.target.value)})}
-//                 style={styles.input} required />
-//               <input type="text" placeholder="Duration (e.g., 8 weeks)" value={newCourse.duration}
-//                 onChange={(e) => setNewCourse({...newCourse, duration: e.target.value})}
-//                 style={styles.input} />
-//               <select value={newCourse.level} onChange={(e) => setNewCourse({...newCourse, level: e.target.value})}
-//                 style={styles.input}>
-//                 <option value="beginner">Beginner</option>
-//                 <option value="intermediate">Intermediate</option>
-//                 <option value="advanced">Advanced</option>
-//               </select>
-//               <button type="submit" style={styles.submitBtn}>Create Course</button>
-//             </form>
-//           </div>
-//         )}
-
-//         {/* Payments Tab */}
-//         {activeTab === 'payments' && (
-//           <div>
-//             <h2 style={styles.sectionTitle}>💳 Payment History</h2>
-//             <div style={styles.paymentCard}>
-//               <p style={styles.paymentInfo}>💰 Total Spent: $0</p>
-//               <p style={styles.paymentInfo}>📊 Active Subscriptions: 0</p>
-//               <div style={styles.paymentMethods}>
-//                 <h4>Payment Methods</h4>
-//                 <button style={styles.addPaymentBtn}>+ Add Payment Method</button>
-//               </div>
-//               <div style={styles.transactionHistory}>
-//                 <h4>Recent Transactions</h4>
-//                 <p style={styles.noTransactions}>No transactions yet</p>
-//               </div>
-//             </div>
-//           </div>
-//         )}
-//       </div>
-//     </div>
-//   );
-// };
-
-// const styles = {
-//   container: {
-//     maxWidth: '1200px',
-//     margin: '0 auto',
-//     padding: '20px'
-//   },
-//   header: {
-//     textAlign: 'center',
-//     marginBottom: '30px'
-//   },
-//   headerTitle: {
-//     fontSize: '32px',
-//     color: '#333',
-//     marginBottom: '10px'
-//   },
-//   headerSubtitle: {
-//     fontSize: '18px',
-//     color: '#666'
-//   },
-//   statsGrid: {
-//     display: 'grid',
-//     gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-//     gap: '20px',
-//     marginBottom: '30px'
-//   },
-//   statCard: {
-//     backgroundColor: 'white',
-//     padding: '20px',
-//     borderRadius: '12px',
-//     display: 'flex',
-//     alignItems: 'center',
-//     gap: '15px',
-//     boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-//   },
-//   statIcon: {
-//     fontSize: '40px'
-//   },
-//   statNumber: {
-//     fontSize: '28px',
-//     fontWeight: 'bold',
-//     color: '#667eea',
-//     margin: 0
-//   },
-//   statLabel: {
-//     fontSize: '14px',
-//     color: '#666',
-//     margin: 0
-//   },
-//   tabs: {
-//     display: 'flex',
-//     gap: '10px',
-//     marginBottom: '30px',
-//     borderBottom: '2px solid #e0e0e0',
-//     paddingBottom: '10px',
-//     flexWrap: 'wrap'
-//   },
-//   tab: {
-//     padding: '10px 20px',
-//     backgroundColor: 'transparent',
-//     border: 'none',
-//     cursor: 'pointer',
-//     fontSize: '16px',
-//     color: '#666',
-//     borderRadius: '8px',
-//     transition: 'all 0.3s'
-//   },
-//   activeTab: {
-//     padding: '10px 20px',
-//     backgroundColor: '#667eea',
-//     color: 'white',
-//     border: 'none',
-//     cursor: 'pointer',
-//     fontSize: '16px',
-//     borderRadius: '8px'
-//   },
-//   tabContent: {
-//     minHeight: '400px'
-//   },
-//   welcomeCard: {
-//     backgroundColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-//     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-//     color: 'white',
-//     padding: '30px',
-//     borderRadius: '12px',
-//     textAlign: 'center',
-//     marginBottom: '30px'
-//   },
-//   sectionTitle: {
-//     fontSize: '24px',
-//     marginBottom: '20px',
-//     color: '#333'
-//   },
-//   courseGrid: {
-//     display: 'grid',
-//     gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-//     gap: '20px'
-//   },
-//   courseCard: {
-//     backgroundColor: 'white',
-//     borderRadius: '12px',
-//     padding: '20px',
-//     boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-//     position: 'relative',
-//     transition: 'transform 0.3s'
-//   },
-//   courseBadge: {
-//     position: 'absolute',
-//     top: '10px',
-//     right: '10px',
-//     backgroundColor: '#4caf50',
-//     color: 'white',
-//     padding: '4px 8px',
-//     borderRadius: '4px',
-//     fontSize: '12px'
-//   },
-//   premiumBadge: {
-//     position: 'absolute',
-//     top: '10px',
-//     right: '10px',
-//     backgroundColor: '#ffd700',
-//     color: '#333',
-//     padding: '4px 8px',
-//     borderRadius: '4px',
-//     fontSize: '12px',
-//     fontWeight: 'bold'
-//   },
-//   freeBadge: {
-//     position: 'absolute',
-//     top: '10px',
-//     right: '10px',
-//     backgroundColor: '#4caf50',
-//     color: 'white',
-//     padding: '4px 8px',
-//     borderRadius: '4px',
-//     fontSize: '12px'
-//   },
-//   courseTitle: {
-//     fontSize: '18px',
-//     marginBottom: '10px',
-//     color: '#333',
-//     paddingRight: '60px'
-//   },
-//   courseDesc: {
-//     color: '#666',
-//     marginBottom: '10px',
-//     lineHeight: '1.5'
-//   },
-//   teacherInfo: {
-//     color: '#667eea',
-//     marginBottom: '10px',
-//     fontSize: '14px'
-//   },
-//   courseMeta: {
-//     display: 'flex',
-//     gap: '15px',
-//     marginBottom: '15px',
-//     fontSize: '13px',
-//     color: '#888'
-//   },
-//   progressBar: {
-//     backgroundColor: '#f0f0f0',
-//     borderRadius: '10px',
-//     height: '8px',
-//     margin: '15px 0',
-//     overflow: 'hidden'
-//   },
-//   progressFill: {
-//     backgroundColor: '#667eea',
-//     height: '100%',
-//     borderRadius: '10px'
-//   },
-//   cardFooter: {
-//     display: 'flex',
-//     justifyContent: 'space-between',
-//     alignItems: 'center',
-//     marginTop: '15px',
-//     paddingTop: '15px',
-//     borderTop: '1px solid #eee'
-//   },
-//   price: {
-//     fontSize: '20px',
-//     fontWeight: 'bold',
-//     color: '#667eea'
-//   },
-//   enrollBtn: {
-//     padding: '8px 16px',
-//     backgroundColor: '#667eea',
-//     color: 'white',
-//     border: 'none',
-//     borderRadius: '6px',
-//     cursor: 'pointer'
-//   },
-//   continueBtn: {
-//     padding: '8px 16px',
-//     backgroundColor: '#4caf50',
-//     color: 'white',
-//     border: 'none',
-//     borderRadius: '6px',
-//     cursor: 'pointer'
-//   },
-//   browseBtn: {
-//     padding: '10px 20px',
-//     backgroundColor: 'white',
-//     color: '#667eea',
-//     border: 'none',
-//     borderRadius: '6px',
-//     cursor: 'pointer',
-//     marginTop: '15px',
-//     fontWeight: 'bold'
-//   },
-//   emptyState: {
-//     textAlign: 'center',
-//     padding: '50px',
-//     backgroundColor: 'white',
-//     borderRadius: '12px'
-//   },
-//   createCard: {
-//     backgroundColor: 'white',
-//     borderRadius: '12px',
-//     padding: '30px',
-//     maxWidth: '600px',
-//     margin: '0 auto'
-//   },
-//   createForm: {
-//     display: 'flex',
-//     flexDirection: 'column',
-//     gap: '15px'
-//   },
-//   input: {
-//     padding: '12px',
-//     border: '1px solid #ddd',
-//     borderRadius: '6px',
-//     fontSize: '14px'
-//   },
-//   textarea: {
-//     padding: '12px',
-//     border: '1px solid #ddd',
-//     borderRadius: '6px',
-//     fontSize: '14px',
-//     minHeight: '100px'
-//   },
-//   submitBtn: {
-//     padding: '12px',
-//     backgroundColor: '#667eea',
-//     color: 'white',
-//     border: 'none',
-//     borderRadius: '6px',
-//     cursor: 'pointer',
-//     fontSize: '16px',
-//     fontWeight: 'bold'
-//   },
-//   paymentCard: {
-//     backgroundColor: 'white',
-//     borderRadius: '12px',
-//     padding: '30px'
-//   },
-//   paymentInfo: {
-//     fontSize: '18px',
-//     marginBottom: '15px'
-//   },
-//   paymentMethods: {
-//     marginTop: '20px',
-//     paddingTop: '20px',
-//     borderTop: '1px solid #eee'
-//   },
-//   addPaymentBtn: {
-//     padding: '10px 20px',
-//     backgroundColor: '#667eea',
-//     color: 'white',
-//     border: 'none',
-//     borderRadius: '6px',
-//     cursor: 'pointer',
-//     marginTop: '10px'
-//   },
-//   transactionHistory: {
-//     marginTop: '20px',
-//     paddingTop: '20px',
-//     borderTop: '1px solid #eee'
-//   },
-//   noTransactions: {
-//     color: '#999',
-//     padding: '20px',
-//     textAlign: 'center'
-//   },
-//   loading: {
-//     textAlign: 'center',
-//     padding: '50px',
-//     fontSize: '18px'
-//   }
-// };
-
-// export default Dashboard;
-
-
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import API from '../utils/axios';
@@ -611,6 +12,7 @@ const Dashboard = () => {
   const [newCourse, setNewCourse] = useState({
     title: '', description: '', price: 0, duration: '4 weeks', level: 'beginner'
   });
+  const [enrolling, setEnrolling] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -619,41 +21,69 @@ const Dashboard = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
+      console.log('Fetching data...');
+      
+      // Get all courses from live backend
       const coursesRes = await API.get('/courses');
       setCourses(coursesRes.data);
+      console.log('Courses fetched:', coursesRes.data.length);
       
-      const token = localStorage.getItem('token');
-      const myCoursesRes = await fetch('http://localhost:5000/api/users/my-courses', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const myCoursesData = await myCoursesRes.json();
-      setMyCourses(myCoursesData);
+      // Get user's enrolled courses from live backend
+      const myCoursesRes = await API.get('/users/my-courses');
+      setMyCourses(myCoursesRes.data);
+      console.log('Enrolled courses fetched:', myCoursesRes.data.length);
+      console.log('Enrolled courses:', myCoursesRes.data);
+      
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
     }
   };
 
   const enrollCourse = async (courseId) => {
+    if (enrolling) return;
+    
     try {
-      await API.post(`/courses/${courseId}/enroll`);
-      alert('✅ Successfully enrolled!');
-      fetchData();
+      setEnrolling(true);
+      console.log('Enrolling in course:', courseId);
+      
+      const response = await API.post(`/courses/${courseId}/enroll`);
+      console.log('Enroll response:', response.data);
+      
+      if (response.data.success) {
+        alert('✅ Successfully enrolled in course!');
+        // Refresh data to update counts
+        await fetchData();
+        // Switch to my-courses tab
+        setActiveTab('my-courses');
+      } else {
+        alert(response.data.message || 'Enrollment failed');
+      }
     } catch (error) {
+      console.error('Enrollment error:', error);
       alert(error.response?.data?.message || 'Enrollment failed');
+    } finally {
+      setEnrolling(false);
     }
   };
 
   const createCourse = async (e) => {
     e.preventDefault();
     try {
-      await API.post('/courses', newCourse);
-      alert('✅ Course created!');
-      setNewCourse({ title: '', description: '', price: 0, duration: '4 weeks', level: 'beginner' });
-      setShowCreateModal(false);
-      fetchData();
+      const response = await API.post('/courses', newCourse);
+      console.log('Create course response:', response.data);
+      
+      if (response.data.success) {
+        alert('✅ Course created successfully!');
+        setNewCourse({ title: '', description: '', price: 0, duration: '4 weeks', level: 'beginner' });
+        setShowCreateModal(false);
+        await fetchData();
+      } else {
+        alert(response.data.message || 'Failed to create course');
+      }
     } catch (error) {
+      console.error('Create course error:', error);
       alert(error.response?.data?.message || 'Failed to create course');
     }
   };
@@ -662,7 +92,6 @@ const Dashboard = () => {
     !myCourses.some(myCourse => myCourse._id === course._id)
   );
 
-  // Get role-based title and subtitle
   const getRoleTitle = () => {
     switch(user?.role) {
       case 'teacher':
@@ -882,8 +311,12 @@ const Dashboard = () => {
                     <p style={styles.teacherInfo}>👨‍🏫 {course.teacher?.name}</p>
                     <div style={styles.cardFooter}>
                       <span style={styles.price}>${course.price}</span>
-                      <button onClick={() => enrollCourse(course._id)} style={styles.enrollBtn}>
-                        Enroll Now →
+                      <button 
+                        onClick={() => enrollCourse(course._id)} 
+                        style={styles.enrollBtn}
+                        disabled={enrolling}
+                      >
+                        {enrolling ? 'Enrolling...' : 'Enroll Now →'}
                       </button>
                     </div>
                   </div>
@@ -1163,7 +596,11 @@ const styles = {
     color: 'white',
     border: 'none',
     borderRadius: '6px',
-    cursor: 'pointer'
+    cursor: 'pointer',
+    '&:disabled': {
+      opacity: 0.6,
+      cursor: 'not-allowed'
+    }
   },
   continueBtn: {
     width: '100%',
